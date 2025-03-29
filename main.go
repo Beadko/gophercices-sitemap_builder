@@ -3,6 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
 )
 
 var (
@@ -11,7 +14,19 @@ var (
 
 func main() {
 	flag.Parse()
-	fmt.Println(*urlFlag)
+
+	if *urlFlag == "" {
+		fmt.Println("Please provide a URL using -url flag")
+		return
+	}
+
+	resp, err := http.Get(*urlFlag)
+	if err != nil {
+		fmt.Printf("Could not get the response from %s: %v\n", *urlFlag, err)
+		return
+	}
+	defer resp.Body.Close()
+	io.Copy(os.Stdout, resp.Body)
 }
 
 /*
