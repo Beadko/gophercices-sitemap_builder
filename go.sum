@@ -1,0 +1,4 @@
+github.com/Beadko/gophercises_link v0.0.0-20250329041135-344531eba1aa h1:m1lH6cGiMNFubLJflsGPKIo/RqDs0wZ3C3QJQWCTDgM=
+github.com/Beadko/gophercises_link v0.0.0-20250329041135-344531eba1aa/go.mod h1:JUL6cH6oj3mehXdFP8C8tgnnWVdzkwwTPW4E5lIwQRQ=
+golang.org/x/net v0.37.0 h1:1zLorHbz+LYj7MQlSf1+2tPIIgibq2eL5xkrGk6f+2c=
+golang.org/x/net v0.37.0/go.mod h1:ivrbrMbzFq5J41QOQh0siUuly180yBYtLp+CKbEaFx8=

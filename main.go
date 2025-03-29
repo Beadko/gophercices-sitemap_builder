@@ -3,9 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
+	"net/url"
+	"strings"
+
+	"github.com/Beadko/gophercises_link/link"
 )
 
 var (
@@ -26,11 +28,33 @@ func main() {
 		return
 	}
 	defer resp.Body.Close()
-	io.Copy(os.Stdout, resp.Body)
+
+	reqURL := resp.Request.URL
+	baseURL := &url.URL{
+		Scheme: reqURL.Scheme,
+		Host:   reqURL.Host,
+	}
+	base := baseURL.String()
+
+	links, err := link.Parse(resp.Body)
+	if err != nil {
+		fmt.Printf("Could not parse the links from the url %s body: %v\n", *urlFlag, err)
+	}
+	var hrefs []string
+	for _, l := range links {
+		switch {
+		case strings.HasPrefix(l.Href, "/"):
+			hrefs = append(hrefs, base+l.Href)
+		case strings.HasPrefix(l.Href, "http"):
+			hrefs = append(hrefs, l.Href)
+		}
+	}
+	for _, href := range hrefs {
+		fmt.Println(href)
+	}
 }
 
 /*
-1. GET the webpage
 2. parse all the links on the page
 3 build proper urls with our links
 4. filter out any links w/ a diff domain
