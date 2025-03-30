@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -22,10 +23,17 @@ func main() {
 		return
 	}
 
-	resp, err := http.Get(*urlFlag)
+	pages := get(*&urlFlag)
+	for _, page := range pages {
+		fmt.Println(page)
+	}
+}
+
+func get(u *string) []string {
+	resp, err := http.Get(*u)
 	if err != nil {
 		fmt.Printf("Could not get the response from %s: %v\n", *urlFlag, err)
-		return
+		return nil
 	}
 	defer resp.Body.Close()
 
@@ -36,26 +44,27 @@ func main() {
 	}
 	base := baseURL.String()
 
-	links, err := link.Parse(resp.Body)
+	return hrefs(resp.Body, base)
+}
+
+func hrefs(r io.Reader, base string) []string {
+	links, err := link.Parse(r)
 	if err != nil {
 		fmt.Printf("Could not parse the links from the url %s body: %v\n", *urlFlag, err)
 	}
-	var hrefs []string
+	var ret []string
 	for _, l := range links {
 		switch {
 		case strings.HasPrefix(l.Href, "/"):
-			hrefs = append(hrefs, base+l.Href)
+			ret = append(ret, base+l.Href)
 		case strings.HasPrefix(l.Href, "http"):
-			hrefs = append(hrefs, l.Href)
+			ret = append(ret, l.Href)
 		}
 	}
-	for _, href := range hrefs {
-		fmt.Println(href)
-	}
+	return ret
 }
 
 /*
-2. parse all the links on the page
 3 build proper urls with our links
 4. filter out any links w/ a diff domain
 5. find all the pages (BFS)
