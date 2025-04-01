@@ -36,7 +36,6 @@ func get(u *string) []string {
 		return nil
 	}
 	defer resp.Body.Close()
-
 	reqURL := resp.Request.URL
 	baseURL := &url.URL{
 		Scheme: reqURL.Scheme,
@@ -44,7 +43,7 @@ func get(u *string) []string {
 	}
 	base := baseURL.String()
 
-	return hrefs(resp.Body, base)
+	return filter(hrefs(resp.Body, base), withPrefix(base))
 }
 
 func hrefs(r io.Reader, base string) []string {
@@ -64,9 +63,23 @@ func hrefs(r io.Reader, base string) []string {
 	return ret
 }
 
+func filter(links []string, keepFn func(string) bool) []string {
+	var r []string
+	for _, link := range links {
+		if keepFn(link) {
+			r = append(r, link)
+		}
+	}
+	return r
+}
+
+func withPrefix(pfx string) func(string) bool {
+	return func(link string) bool {
+		return strings.HasPrefix(link, pfx)
+	}
+}
+
 /*
-3 build proper urls with our links
-4. filter out any links w/ a diff domain
 5. find all the pages (BFS)
 6. print out XML
 */
