@@ -1,20 +1,33 @@
 package main
 
 import (
+	"encoding/xml"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/Beadko/gophercises_link/link"
 )
 
+const xmlns = "http://www.sitemaps.org/schemas/sitemap/0.9"
+
 var (
 	urlFlag = flag.String("url", "https://gophercises.com", "the url that you want to build a sitemap for")
 	depth   = flag.Int("depth", 10, "the maximum number of links deep to traverse")
 )
+
+type loc struct {
+	Value string `xml:"loc"`
+}
+
+type urlset struct {
+	Urls  []loc  `xml:"url"`
+	Xmlns string `xml:"xmlns,attr"`
+}
 
 func main() {
 	flag.Parse()
@@ -25,9 +38,20 @@ func main() {
 	}
 
 	pages := bfs(*urlFlag, *depth)
-	for _, page := range pages {
-		fmt.Println(page)
+	toXML := urlset{
+		Urls:  make([]loc, len(pages)),
+		Xmlns: xmlns,
 	}
+	for i, page := range pages {
+		toXML.Urls[i] = loc{page}
+	}
+	fmt.Print(xml.Header)
+	enc := xml.NewEncoder(os.Stdout)
+	enc.Indent("", "  ")
+	if err := enc.Encode(toXML); err != nil {
+		fmt.Printf("Could not encode data into XML file: %v\n", err)
+	}
+	fmt.Println()
 }
 
 func bfs(urlString string, depth int) []string {
@@ -38,13 +62,18 @@ func bfs(urlString string, depth int) []string {
 	}
 	for i := 0; i <= depth; i++ {
 		q, nq = nq, make(map[string]struct{})
-		for u, _ := range q {
+		if len(q) == 0 {
+			break
+		}
+		for u := range q {
 			if _, ok := seen[u]; ok {
 				continue
 			}
 			seen[u] = struct{}{}
-			for _, l := range get(&u) {
-				nq[l] = struct{}{}
+			for _, l := range get(u) {
+				if _, ok := seen[l]; !ok {
+					nq[l] = struct{}{}
+				}
 			}
 		}
 	}
@@ -55,8 +84,8 @@ func bfs(urlString string, depth int) []string {
 	return r
 }
 
-func get(u *string) []string {
-	resp, err := http.Get(*u)
+func get(u string) []string {
+	resp, err := http.Get(u)
 	if err != nil {
 		fmt.Printf("Could not get the response from %s: %v\n", *urlFlag, err)
 		return []string{}
@@ -104,8 +133,3 @@ func withPrefix(pfx string) func(string) bool {
 		return strings.HasPrefix(link, pfx)
 	}
 }
-
-/*
-5. find all the pages (BFS)
-6. print out XML
-*/
