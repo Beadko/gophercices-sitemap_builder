@@ -13,6 +13,7 @@ import (
 
 var (
 	urlFlag = flag.String("url", "https://gophercises.com", "the url that you want to build a sitemap for")
+	depth   = flag.Int("depth", 10, "the maximum number of links deep to traverse")
 )
 
 func main() {
@@ -23,17 +24,42 @@ func main() {
 		return
 	}
 
-	pages := get(*&urlFlag)
+	pages := bfs(*urlFlag, *depth)
 	for _, page := range pages {
 		fmt.Println(page)
 	}
+}
+
+func bfs(urlString string, depth int) []string {
+	seen := make(map[string]struct{})
+	var q map[string]struct{}
+	nq := map[string]struct{}{
+		urlString: {},
+	}
+	for i := 0; i <= depth; i++ {
+		q, nq = nq, make(map[string]struct{})
+		for u, _ := range q {
+			if _, ok := seen[u]; ok {
+				continue
+			}
+			seen[u] = struct{}{}
+			for _, l := range get(&u) {
+				nq[l] = struct{}{}
+			}
+		}
+	}
+	r := make([]string, 0, len(seen))
+	for u := range seen {
+		r = append(r, u)
+	}
+	return r
 }
 
 func get(u *string) []string {
 	resp, err := http.Get(*u)
 	if err != nil {
 		fmt.Printf("Could not get the response from %s: %v\n", *urlFlag, err)
-		return nil
+		return []string{}
 	}
 	defer resp.Body.Close()
 	reqURL := resp.Request.URL
